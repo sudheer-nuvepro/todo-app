@@ -2,25 +2,28 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "sudheer99123/todo-taskapp"
+        DOCKER_IMAGE = "sudheer99123/todo-application"
         DOCKER_TAG = "latest"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/sudheer-nuvepro/java_app.git'
+                echo "Cloning the repository..."
+                git branch: 'main', url: 'https://github.com/sudheer-nuvepro/todo-app.git'
             }
         }
 
         stage('Build Maven Project') {
             steps {
+                echo "Building the Spring Boot application..."
                 sh 'mvn clean package -DskipTests'
             }
         }
 
         stage('Build Docker Image') {
             steps {
+                echo "Building Docker image..."
                 script {
                     docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
                 }
@@ -29,6 +32,7 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
+                echo "Pushing Docker image to Docker Hub..."
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
                         docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
@@ -37,20 +41,37 @@ pipeline {
             }
         }
 
-        stage('Deploy Docker Container') {
+        stage('Deploy with Docker Compose') {
             steps {
+                echo "Deploying the application using Docker Compose..."
                 sh '''
-                    docker stop todo-taskapp || true
-                    docker rm todo-taskapp || true
-                    docker run -d -p 8081:8081 --name todo-taskapp ${DOCKER_IMAGE}:${DOCKER_TAG}
+                    docker-compose down || true
+                    docker-compose up -d --build
                 '''
+            }
+        }
+
+        stage('Verify Services') {
+            steps {
+                echo "Verifying running services..."
+                sh 'docker-compose ps'
             }
         }
 
         stage('Cleanup Workspace') {
             steps {
+                echo "Cleaning up the workspace..."
                 sh 'rm -rf *'
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline executed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check the logs for details."
         }
     }
 }
