@@ -45,8 +45,8 @@ pipeline {
             steps {
                 echo "Deploying the application using Docker Compose..."
                 sh '''
-                    docker-compose down || true
-                    docker-compose up -d --build
+                    docker compose down || true
+                    docker compose up -d --build
                 '''
             }
         }
@@ -54,7 +54,7 @@ pipeline {
         stage('Verify Services') {
             steps {
                 echo "Verifying running services..."
-                sh 'docker-compose ps'
+                sh 'docker compose ps'
             }
         }
 
